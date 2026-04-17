@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>LINE送信用 学習報告ツール</title>
+  <style>
+    :root{
+      --bg:#f8fafc; --card:#ffffff; --text:#0f172a; --sub:#64748b; --line:#e2e8f0; --soft:#f1f5f9; --strong:#0f172a;
+    }
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif}
+    body{min-height:100vh}
+    .wrap{max-width:760px;margin:0 auto;padding:20px 16px 48px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:20px;box-shadow:0 1px 2px rgba(15,23,42,.04)}
+    .card + .card{margin-top:16px}
+    .top{display:flex;gap:12px;justify-content:space-between;align-items:flex-start}
+    .eyebrow{font-size:13px;font-weight:700;color:var(--sub)}
+    h1{font-size:28px;line-height:1.3;margin:6px 0 0}
+    .lead{margin:10px 0 0;color:var(--sub);line-height:1.8;font-size:14px}
+    .chip{white-space:nowrap;background:var(--soft);border-radius:16px;padding:8px 12px;font-size:13px;font-weight:700;color:#334155}
+    .progress{height:8px;background:var(--soft);border-radius:999px;margin-top:16px;overflow:hidden}
+    .progress-bar{height:100%;width:0;background:var(--strong);border-radius:999px;transition:width .2s}
+    .q-count{font-size:13px;font-weight:700;color:var(--sub)}
+    h2{font-size:28px;line-height:1.35;margin:8px 0 0}
+    .q-desc{margin:10px 0 0;color:var(--sub);line-height:1.8;font-size:15px}
+    .field{margin-top:20px}
+    input[type="text"],input[type="date"],textarea{
+      width:100%;border:1px solid var(--line);border-radius:18px;padding:14px 16px;font-size:16px;background:#fff;color:var(--text);outline:none;appearance:none;
+    }
+    input[type="text"]:focus,input[type="date"]:focus,textarea:focus{border-color:#94a3b8}
+    textarea{min-height:144px;resize:vertical;line-height:1.7}
+    .options{display:grid;gap:10px}
+    .option-btn{
+      width:100%;text-align:left;border:1px solid var(--line);background:#fff;border-radius:18px;padding:16px;font-size:16px;font-weight:600;color:var(--text);cursor:pointer
+    }
+    .option-btn.active{background:var(--strong);color:#fff;border-color:var(--strong)}
+    .slider-wrap{margin-top:8px}
+    .slider-value{font-size:36px;font-weight:800;line-height:1.1;margin-bottom:6px}
+    .slider-sub{font-size:14px;color:var(--sub);line-height:1.7;margin-bottom:12px}
+    input[type="range"]{width:100%;height:34px;appearance:auto}
+    .range-labels{display:flex;justify-content:space-between;font-size:12px;color:var(--sub);margin-top:6px}
+    .actions{display:flex;gap:12px;justify-content:space-between;margin-top:28px}
+    .btn{
+      min-height:50px;border-radius:18px;padding:14px 18px;border:1px solid var(--line);background:#fff;color:var(--text);font-size:15px;font-weight:700;cursor:pointer
+    }
+    .btn.primary{background:var(--strong);border-color:var(--strong);color:#fff}
+    .btn:disabled{opacity:.42;cursor:not-allowed}
+    .summary-box{
+      width:100%;margin-top:18px;border:1px solid var(--line);border-radius:18px;background:var(--soft);padding:16px;font-size:15px;line-height:1.8;min-height:330px;
+      color:var(--text);outline:none;resize:none
+    }
+    .copy-note{margin-top:10px;font-size:14px;color:var(--sub);line-height:1.7;min-height:24px}
+    .help-list{margin:10px 0 0;padding-left:20px;color:var(--sub);font-size:14px;line-height:1.8}
+    @media (max-width:640px){
+      .wrap{padding:14px 12px 32px}
+      .card{padding:16px;border-radius:20px}
+      h1{font-size:22px}
+      h2{font-size:24px}
+      .top{flex-direction:column;align-items:flex-start}
+      .chip{align-self:flex-end}
+      .actions{position:sticky;bottom:0;padding-top:12px;background:linear-gradient(to top,var(--card) 72%,rgba(255,255,255,0))}
+      .btn{flex:1;padding:14px 12px}
+      .slider-value{font-size:32px}
+      textarea{min-height:132px}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="top">
+        <div>
+          <div class="eyebrow">学習報告サポート</div>
+          <h1>LINE送信用 学習報告ツール</h1>
+          <p class="lead">質問に答えるだけで、最後にLINEへ貼り付ける文章が完成します。画像はコピー後にLINEへ別で添付してください。</p>
+        </div>
+        <div class="chip" id="stepChip">1 / 9</div>
+      </div>
+      <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+    </div>
+
+    <div class="card" id="questionCard">
+      <div class="q-count" id="qCount">質問 1</div>
+      <h2 id="qTitle"></h2>
+      <p class="q-desc" id="qDesc"></p>
+      <div class="field" id="fieldArea"></div>
+      <div class="actions">
+        <button class="btn" id="backBtn" type="button">戻る</button>
+        <button class="btn primary" id="nextBtn" type="button">次へ</button>
+      </div>
+    </div>
+
+    <div class="card" id="summaryCard" style="display:none;">
+      <div class="q-count">完成しました</div>
+      <h2>LINEに貼り付ける文章</h2>
+      <p class="q-desc">下の文章をコピーしてLINEに貼り付けてください。画像がある場合は、そのあとでLINEに添付してください。</p>
+
+      <textarea class="summary-box" id="summaryBox" readonly></textarea>
+      <div class="copy-note" id="copyNote"></div>
+
+      <div class="actions">
+        <button class="btn primary" id="copyBtn" type="button">文章をコピー</button>
+        <button class="btn" id="editBtn" type="button">内容を修正</button>
+      </div>
+      <div class="actions" style="margin-top:12px;">
+        <button class="btn" id="resetBtn" type="button">最初から入力する</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="font-size:20px;margin:0;">使い方</h2>
+      <ol class="help-list">
+        <li>質問に順番に答えます。</li>
+        <li>最後に「文章をコピー」を押します。</li>
+        <li>LINEに貼り付けて送信します。</li>
+        <li>必要ならそのあとで画像をLINEに添付します。</li>
+      </ol>
+    </div>
+  </div>
+
+  <script>
+    const today = new Date().toISOString().slice(0, 10);
+
+    const form = {
+      name: "",
+      date: today,
+      taskDone: "",
+      studyMinutes: 240,
+      completion: 4,
+      completionReason: "",
+      firstStepTomorrow: "",
+      praiseToday: "",
+      outputToday: ""
+    };
+
+    const questions = [
+      {
+        key: "name",
+        title: "生徒名",
+        desc: "まずは名前を入力してください。",
+        type: "text",
+        placeholder: "例：田中 太郎"
+      },
+      {
+        key: "date",
+        title: "日付",
+        desc: "今日の報告日を選んでください。",
+        type: "date"
+      },
+      {
+        key: "taskDone",
+        title: "今日の課題は終わった？",
+        desc: "どちらか近い方を選んでください。",
+        type: "options",
+        options: ["終わった", "終わっていない"]
+      },
+      {
+        key: "studyMinutes",
+        title: "今日の勉強時間",
+        desc: "15分刻みで選べます。0分から14時間まで動かしてください。",
+        type: "range",
+        min: 0,
+        max: 840,
+        step: 15
+      },
+      {
+        key: "completion",
+        title: "宿題の完成度",
+        desc: "10段階で答えてください。数字だけを見て直感で選んで大丈夫です。",
+        type: "range10",
+        min: 1,
+        max: 10,
+        step: 1
+      },
+      {
+        key: "completionReason",
+        title: "完成度の根拠",
+        desc: "なぜその評価にしたのかを短く書いてください。例：英語は最後まで終わったが、見直しが甘かった。短くなくてOKです。",
+        type: "textarea",
+        placeholder: "例：数学は最後まで解いたが、解き直しが十分ではなかった。"
+      },
+      {
+        key: "firstStepTomorrow",
+        title: "明日はじめにやること",
+        desc: "明日の最初の一歩を書きましょう。小さく、すぐ始められる内容にするのがポイントです。",
+        type: "textarea",
+        placeholder: "例：英単語を10個確認してから長文に入る"
+      },
+      {
+        key: "praiseToday",
+        title: "今日の自分へのひとこと",
+        desc: "今日できたことをひとつ褒めましょう。小さなことでもOKです。",
+        type: "textarea",
+        placeholder: "例：疲れていたけど、机に向かえたのはえらい"
+      },
+      {
+        key: "outputToday",
+        title: "今日のアウトプット",
+        desc: "今日学んだことを、自分の言葉で何でもいいので書いてください。文章での説明が難しい場合は「画像で説明する」と入力して、送信後にLINEに画像を添付してください。",
+        type: "textarea",
+        placeholder: "例：自動詞と他動詞は『何を？』とツッコミを入れて考えると見分けやすい"
+      }
+    ];
+
+    let currentStep = 0;
+
+    const stepChip = document.getElementById("stepChip");
+    const progressBar = document.getElementById("progressBar");
+    const questionCard = document.getElementById("questionCard");
+    const summaryCard = document.getElementById("summaryCard");
+    const qCount = document.getElementById("qCount");
+    const qTitle = document.getElementById("qTitle");
+    const qDesc = document.getElementById("qDesc");
+    const fieldArea = document.getElementById("fieldArea");
+    const backBtn = document.getElementById("backBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const summaryBox = document.getElementById("summaryBox");
+    const copyBtn = document.getElementById("copyBtn");
+    const copyNote = document.getElementById("copyNote");
+    const editBtn = document.getElementById("editBtn");
+    const resetBtn = document.getElementById("resetBtn");
+
+    function formatMinutes(minutes) {
+      const total = Number(minutes) || 0;
+      const h = Math.floor(total / 60);
+      const m = total % 60;
+      if (h === 0 && m === 0) return "0分";
+      if (h === 0) return `${m}分`;
+      if (m === 0) return `${h}時間`;
+      return `${h}時間${m}分`;
+    }
+
+    function canProceed() {
+      const q = questions[currentStep];
+      if (!q) return true;
+      const value = form[q.key];
+      if (q.type === "text" || q.type === "textarea") return String(value || "").trim().length > 0;
+      if (q.type === "date") return Boolean(value);
+      if (q.type === "options") return Boolean(value);
+      return true;
+    }
+
+    function updateHeader() {
+      stepChip.textContent = `${currentStep + 1} / ${questions.length}`;
+      progressBar.style.width = `${((currentStep + 1) / questions.length) * 100}%`;
+      qCount.textContent = `質問 ${currentStep + 1}`;
+    }
+
+    function renderQuestion() {
+      const q = questions[currentStep];
+      updateHeader();
+      qTitle.textContent = q.title;
+      qDesc.textContent = q.desc;
+      fieldArea.innerHTML = "";
+      nextBtn.disabled = !canProceed();
+      backBtn.disabled = currentStep === 0;
+
+      if (q.type === "text" || q.type === "date") {
+        const input = document.createElement("input");
+        input.type = q.type;
+        input.value = form[q.key];
+        input.placeholder = q.placeholder || "";
+        input.autocomplete = "off";
+        input.addEventListener("input", (e) => {
+          form[q.key] = e.target.value;
+          nextBtn.disabled = !canProceed();
+        });
+        fieldArea.appendChild(input);
+        return;
+      }
+
+      if (q.type === "textarea") {
+        const textarea = document.createElement("textarea");
+        textarea.value = form[q.key];
+        textarea.placeholder = q.placeholder || "";
+        textarea.addEventListener("input", (e) => {
+          form[q.key] = e.target.value;
+          nextBtn.disabled = !canProceed();
+        });
+        fieldArea.appendChild(textarea);
+        return;
+      }
+
+      if (q.type === "options") {
+        const wrap = document.createElement("div");
+        wrap.className = "options";
+        q.options.forEach(option => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "option-btn" + (form[q.key] === option ? " active" : "");
+          btn.textContent = option;
+          btn.addEventListener("click", () => {
+            form[q.key] = option;
+            renderQuestion();
+          });
+          wrap.appendChild(btn);
+        });
+        fieldArea.appendChild(wrap);
+        return;
+      }
+
+      if (q.type === "range") {
+        const wrap = document.createElement("div");
+        wrap.className = "slider-wrap";
+
+        const value = document.createElement("div");
+        value.className = "slider-value";
+        value.textContent = formatMinutes(form[q.key]);
+
+        const sub = document.createElement("div");
+        sub.className = "slider-sub";
+        sub.textContent = "15分刻みで動きます。";
+
+        const input = document.createElement("input");
+        input.type = "range";
+        input.min = q.min;
+        input.max = q.max;
+        input.step = q.step;
+        input.value = form[q.key];
+        input.addEventListener("input", (e) => {
+          form[q.key] = Number(e.target.value);
+          value.textContent = formatMinutes(form[q.key]);
+        });
+
+        const labels = document.createElement("div");
+        labels.className = "range-labels";
+        labels.innerHTML = "<span>0分</span><span>14時間</span>";
+
+        wrap.appendChild(value);
+        wrap.appendChild(sub);
+        wrap.appendChild(input);
+        wrap.appendChild(labels);
+        fieldArea.appendChild(wrap);
+        return;
+      }
+
+      if (q.type === "range10") {
+        const wrap = document.createElement("div");
+        wrap.className = "slider-wrap";
+
+        const value = document.createElement("div");
+        value.className = "slider-value";
+        value.textContent = String(form[q.key]);
+
+        const sub = document.createElement("div");
+        sub.className = "slider-sub";
+        sub.textContent = "1〜10の中から、今の感覚に近い数字を選んでください。";
+
+        const input = document.createElement("input");
+        input.type = "range";
+        input.min = q.min;
+        input.max = q.max;
+        input.step = q.step;
+        input.value = form[q.key];
+        input.addEventListener("input", (e) => {
+          form[q.key] = Number(e.target.value);
+          value.textContent = String(form[q.key]);
+        });
+
+        const labels = document.createElement("div");
+        labels.className = "range-labels";
+        labels.innerHTML = "<span>1</span><span>10</span>";
+
+        wrap.appendChild(value);
+        wrap.appendChild(sub);
+        wrap.appendChild(input);
+        wrap.appendChild(labels);
+        fieldArea.appendChild(wrap);
+      }
+    }
+
+    function buildSummary() {
+      return `【生徒名】
+${form.name}
+【日付】
+${form.date}
+【今日の課題】
+${form.taskDone}
+【勉強時間】
+${formatMinutes(form.studyMinutes)}
+【宿題の完成度】
+${form.completion}/10
+【完成度の根拠】
+${form.completionReason}
+【明日はじめにやること】
+${form.firstStepTomorrow}
+【今日の自分へのひとこと】
+${form.praiseToday}
+【今日のアウトプット】
+${form.outputToday}
+画像はこのメッセージ送信後に別で添付してください。`;
+    }
+
+    function showSummary() {
+      questionCard.style.display = "none";
+      summaryCard.style.display = "block";
+      stepChip.textContent = "完成";
+      progressBar.style.width = "100%";
+      summaryBox.value = buildSummary();
+      copyNote.textContent = "";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function showQuestion() {
+      questionCard.style.display = "block";
+      summaryCard.style.display = "none";
+      renderQuestion();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    async function copySummary() {
+      const text = buildSummary();
+      summaryBox.value = text;
+      summaryBox.focus();
+      summaryBox.select();
+      summaryBox.setSelectionRange(0, text.length);
+
+      let copied = false;
+
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(text);
+          copied = true;
+        }
+      } catch (e) {}
+
+      if (!copied) {
+        try {
+          copied = document.execCommand("copy");
+        } catch (e) {
+          copied = false;
+        }
+      }
+
+      if (copied) {
+        copyNote.textContent = "コピーしました。LINEにそのまま貼り付けて使えます。";
+      } else {
+        copyNote.textContent = "コピーに失敗しました。表示された文章を長押しまたは選択してコピーしてください。";
+      }
+    }
+
+    nextBtn.addEventListener("click", () => {
+      if (!canProceed()) return;
+      if (currentStep === questions.length - 1) {
+        showSummary();
+      } else {
+        currentStep += 1;
+        renderQuestion();
+      }
+    });
+
+    backBtn.addEventListener("click", () => {
+      if (currentStep === 0) return;
+      currentStep -= 1;
+      renderQuestion();
+    });
+
+    copyBtn.addEventListener("click", copySummary);
+
+    editBtn.addEventListener("click", () => {
+      currentStep = questions.length - 1;
+      showQuestion();
+    });
+
+    resetBtn.addEventListener("click", () => {
+      form.name = "";
+      form.date = today;
+      form.taskDone = "";
+      form.studyMinutes = 240;
+      form.completion = 4;
+      form.completionReason = "";
+      form.firstStepTomorrow = "";
+      form.praiseToday = "";
+      form.outputToday = "";
+      currentStep = 0;
+      showQuestion();
+    });
+
+    renderQuestion();
+  </script>
+</body>
+</html>
